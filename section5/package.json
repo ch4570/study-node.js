@@ -1,0 +1,17 @@
+{
+  "name": "learn-express",
+  "version": "0.0.1",
+  "description": "Express를 배우자",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon app"
+  },
+  "author": "Dev Rex Seo",
+  "license": "MIT",
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
