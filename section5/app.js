@@ -1,20 +1,107 @@
-const express = require('express')
+// dotenv는 프로젝트 최상단에 올리는 것이 좋다.
+const dotenv = require("dotenv");
+dotenv.config();
 
-const app = express()
+const express = require('express')
 const path = require('path')
+const morgan = require('morgan')
+const cookieParser = require('cookie-parser')
+const bodyParser = require("express");
+const session = require('express-session');
+const multer = require('multer')
+const fs = require('fs');
+const app = express()
 
 app.set('port', process.env.PORT || 3000)
+
+try {
+    fs.readdirSync('uploads')
+} catch (error) {
+    console.error('uploads 폴더가 없어 uploads 폴더를 생성합니다.')
+    fs.mkdirSync('uploads')
+}
+
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, done) => {
+            // done 함수는 첫 번째 인자가 에러 처리를 위한 미들웨어가 들어가므로 null을 보통 넣는다.
+            done(null, 'uploads/')
+        },
+        filename(req, file, done) {
+            const ext = path.extname(file.originalname)
+            done(null, path.basename(file.originalname, ext) + Date.now() + ext)
+        }
+    }),
+    limits: { fileSize : 5 * 1024 * 1024 }
+})
+
+app.get('/upload', (req, res) => {
+    res.sendFile(path.join(__dirname, 'multipart.html'))
+})
+
+app.post('/upload', upload.single('image'), (req, res) => {
+    console.log(req.file)
+    res.send('OK')
+})
+
+app.use(morgan('dev'))
+// 정적 파일의 위치가 요청과 다른 곳에 있을 경우 유용하다 -> 보안에도 좋다(클라이언트가 서버의 구조를 알기 어렵기 때문에)
+app.use('/', (req, res, next) => {
+    if (req.session.id) {
+        express.static(path.join(__dirname + 'public'))
+    } else {
+        next()
+    }
+})
+app.use(cookieParser(process.env.COOKIE_SECRET))
+app.use(session({
+    resave: false,
+    saveUninitialized: false,
+    secret: 'rex',
+    cookie: {
+        httpOnly: true,
+    },
+    // 기본 값이다.
+    name: 'connect.sid'
+}))
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))   // true면 qs, false면 querystring 사용
+app.use(multer().array())
+
+// Binary Data 등을 다룰 때 사용하지만 잘 안쓴다.
+app.use(bodyParser.raw())
+app.use(bodyParser.text())
 
 app.use((req,res, next)=>{
     console.log('1 요청에 실행하고 싶어요')
     // 미들웨어는 next()를 호출해야 라우터를 찾아간다.
     next()
 }, (req,res,next)=>{
-    throw new Error('에러가 났어요')
+    try {
+        // console.log(adsfasdfasdfasdf)
+        next()
+    } catch (error) {
+        next(error)
+    }
 })
 
 app.get('/', (req, res) => {
+    req.cookies
+    req.signedCookies
+    res.cookie('name', encodeURIComponent('Dev Rex Seo'), {
+        expires : new Date(),
+        httpOnly: true,
+        path : '/'
+    })
     res.sendFile(path.join(__dirname, 'index.html'))
+})
+
+app.get('/json', (req, res) => {
+    // res.setHeader("Content-Type", "application/json")
+    // res.end(JSON.stringify({name : "rex"}))
+
+    // setHeader() + end() 한 번에 처리
+    res.json({name : "rex"})
 })
 
 app.post('/', (req, res) => {
