@@ -11,6 +11,7 @@ const session = require('express-session');
 const multer = require('multer')
 const fs = require('fs');
 const app = express()
+const userRouter = require('./routes/user');
 
 app.set('port', process.env.PORT || 3000)
 
@@ -20,6 +21,9 @@ try {
     console.error('uploads 폴더가 없어 uploads 폴더를 생성합니다.')
     fs.mkdirSync('uploads')
 }
+
+app.use('/user', userRouter)
+
 
 const upload = multer({
     storage: multer.diskStorage({
